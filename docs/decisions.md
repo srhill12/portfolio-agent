@@ -16,3 +16,13 @@
 - **Weekend data:** staleness is market-aware. Friday's close shown on Sunday is labeled as the last close, not as stale.
 - **Account types:** named "investment" and "retirement" to match the client's own words.
 - **MCP authorization:** attempt OAuth first, time-boxed. Fall back to scoped, revocable personal access tokens issued only after OAuth sign-in, and document why.
+
+## 2026-10-17: Authorization architecture
+
+**Decision:** WorkOS AuthKit as the authorization server, with GitHub as the sign-in method, for both the web app and the MCP endpoint. The app acts as the resource server and validates tokens on every request.
+
+**Alternatives considered:** FastMCP's built-in GitHub OAuth proxy (no added vendor, but two separate login paths for web and MCP); personal access tokens (simplest, but not OAuth and poorly supported by browser-based MCP clients).
+
+**Why:** One identity for every way a user reaches their portfolio, so a single authorization rule applies everywhere. Matches the current MCP authorization model, where the app is the resource server and a dedicated authorization server handles sign-in. No cost at this scale.
+
+**Fallback plan:** If the spike fails, FastMCP's GitHub provider; if that fails, scoped and revocable personal access tokens issued after sign-in, with the tradeoff documented.
