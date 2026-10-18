@@ -27,6 +27,8 @@
 
 **Fallback plan:** If the spike fails, FastMCP's GitHub provider; if that fails, scoped and revocable personal access tokens issued after sign-in, with the tradeoff documented.
 
+**Amendment (2026-10-18):** Added Google as a second sign-in method. The assessment fails any deliverable a reviewer cannot access, and a GitHub-only sign-in assumed every reviewer has a GitHub account. AuthKit's hosted page serves both web and MCP sign-in, so this required configuration only, no code changes. Staging uses WorkOS demo Google credentials; a production handoff would register the client's own Google OAuth app.
+
 ## 2026-10-18: Render Starter plan in Ohio region
 
 **Decision:** Render Starter plan in Ohio region. Free tier sleeps after 15 minutes idle, which adds cold-start delays that can break OAuth sign-in and MCP connections for a reviewer. Ohio co-locates the app with the Neon database. Scheduled jobs will run as a separate Render cron service.

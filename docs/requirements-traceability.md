@@ -10,10 +10,10 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 
 | ID | Requirement | Implementation | Verification | Checkpoint | Status |
 |---|---|---|---|---|---|
-| D1 | Live site; reviewer can sign in and use required functionality | Render web service | Second GitHub account signs in from a private window | 1, 4 | Not started |
+| D1 | Live site; reviewer can sign in and use required functionality | Render web service | Second account signs in from a private window, once with GitHub and once with Google | 1, 4 | Not started |
 | K1 | Stack fit, alternatives considered, and operational tradeoffs explained | docs/decisions.md and video topic 2 | Document review | 0, 5 | In progress |
 | K2 | Client-brief assumptions documented; consequential ones explained in video | docs/assumptions.md and video topic 1 | Document review | 0, 5 | In progress |
-| A1 | OAuth sign-in, no local passwords | GitHub OAuth | No password fields or tables exist | 1 | Not started |
+| A1 | OAuth sign-in, no local passwords | WorkOS AuthKit (GitHub or Google) | No password fields or tables exist | 1 | Not started |
 | A2 | Users access and change only their own portfolio: web app | Session-derived user ID; all queries filter by user | Cross-user test: second user gets 404 on first user's holding | 2 | Not started |
 | A3 | Same isolation: backend API | Shared service layer | Cross-user test via API | 2 | Not started |
 | A4 | Same isolation: agent | User ID injected server-side into agent tools | Code review and test that tools ignore model-supplied IDs | 3 | Not started |

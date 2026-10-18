@@ -1,6 +1,6 @@
 # portfolio-agent
 
-Portfolio tracker with an analysis agent and MCP access. FastAPI, Postgres (Neon), WorkOS AuthKit (GitHub), Claude.
+Portfolio tracker with an analysis agent and MCP access. FastAPI, Postgres (Neon), WorkOS AuthKit (GitHub or Google), Claude.
 
 ## Local setup
 
@@ -40,7 +40,7 @@ Open `http://localhost:8000`.
 
 ## WorkOS checklist (short)
 
-1. Enable AuthKit; GitHub as the sign-in method.
+1. Enable AuthKit; enable both GitHub and Google as sign-in methods.
 2. Redirect URI = printed `WorkOS redirect URI` (`/callback`).
 3. Sign-out URI = `BASE_URL` (or `/`).
 4. Initiate login URI = `BASE_URL/login`.
