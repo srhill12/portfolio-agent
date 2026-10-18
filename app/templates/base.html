@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Portfolio Tracker{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+      :root {
+        --bg: #f6f3ee;
+        --ink: #1c1a17;
+        --muted: #5c574f;
+        --accent: #0f5c4c;
+        --line: #d9d2c5;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        background: radial-gradient(circle at top left, #fffaf2, var(--bg) 45%, #ebe4d8);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 3rem 1.25rem;
+      }
+      h1 {
+        font-size: clamp(2rem, 5vw, 2.75rem);
+        line-height: 1.1;
+        margin: 0 0 0.75rem;
+      }
+      p { color: var(--muted); line-height: 1.5; }
+      a.button, button {
+        display: inline-block;
+        margin-top: 1.25rem;
+        padding: 0.7rem 1.1rem;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        border: 0;
+        border-radius: 0.35rem;
+        font: inherit;
+        cursor: pointer;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand { font-weight: 600; letter-spacing: 0.02em; }
+    </style>
+  </head>
+  <body>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

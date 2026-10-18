@@ -1,0 +1,1 @@
+"""HTML routes (Jinja + HTMX)."""
