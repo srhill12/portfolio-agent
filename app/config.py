@@ -81,17 +81,21 @@ class Settings(BaseSettings):
     @field_validator("workos_cookie_password")
     @classmethod
     def cookie_password_is_fernet_key(cls, value: str) -> str:
+        _hint = (
+            'python3 -c "import base64,os; '
+            'print(base64.urlsafe_b64encode(os.urandom(32)).decode())"'
+        )
         if len(value) < 32:
             raise ValueError(
                 "WORKOS_COOKIE_PASSWORD must be at least 32 characters "
-                "(generate with: openssl rand -base64 32)"
+                f"(generate with: {_hint})"
             )
         try:
             Fernet(value.encode("utf-8"))
         except Exception as exc:
             raise ValueError(
                 "WORKOS_COOKIE_PASSWORD must be a valid Fernet key "
-                "(generate with: openssl rand -base64 32)"
+                f"(generate with: {_hint})"
             ) from exc
         return value
 
