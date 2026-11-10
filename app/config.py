@@ -55,6 +55,23 @@ class Settings(BaseSettings):
     oauth_state_cookie_name: str = "oauth_state"
     csrf_cookie_name: str = "csrf_token"
 
+    @field_validator(
+        "base_url",
+        "allowed_origins",
+        "database_url",
+        "database_url_direct",
+        "workos_api_key",
+        "workos_client_id",
+        "workos_cookie_password",
+        "authkit_domain",
+        mode="before",
+    )
+    @classmethod
+    def strip_env_strings(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
     @field_validator("base_url")
     @classmethod
     def strip_trailing_slash(cls, value: str) -> str:

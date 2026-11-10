@@ -10,16 +10,16 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 
 | ID | Requirement | Implementation | Verification | Checkpoint | Status |
 |---|---|---|---|---|---|
-| D1 | Live site; reviewer can sign in and use required functionality | Render web service | Second account signs in from a private window, once with GitHub and once with Google | 1, 4 | Not started |
+| D1 | Live site; reviewer can sign in and use required functionality | Render web service | GitHub and Google accounts signed in and out on production (2026-11-10). Verified at Gate 4. | 1, 4 | In progress |
 | K1 | Stack fit, alternatives considered, and operational tradeoffs explained | docs/decisions.md and video topic 2 | Document review | 0, 5 | In progress |
 | K2 | Client-brief assumptions documented; consequential ones explained in video | docs/assumptions.md and video topic 1 | Document review | 0, 5 | In progress |
-| A1 | OAuth sign-in, no local passwords | WorkOS AuthKit (GitHub or Google) | No password fields or tables exist | 1 | Not started |
+| A1 | OAuth sign-in, no local passwords | WorkOS AuthKit (GitHub or Google) | No password columns in models or migrations; AuthKit limited to GitHub and Google; both verified on production 2026-11-10. | 1 | Verified |
 | A2 | Users access and change only their own portfolio: web app | Session-derived user ID; all queries filter by user | Cross-user test: second user gets 404 on first user's holding | 2 | Not started |
 | A3 | Same isolation: backend API | Shared service layer | Cross-user test via API | 2 | Not started |
 | A4 | Same isolation: agent | User ID injected server-side into agent tools | Code review and test that tools ignore model-supplied IDs | 3 | Not started |
 | A5 | Same isolation: MCP | Token resolves to user ID; shared service layer | MCP session as second user cannot read or edit first user's data | 3 | Not started |
-| A6 | MCP authorization via OAuth; fallback documented if not feasible | Authorization layer | MCP client connects through OAuth flow | 1, 3 | Not started |
-| H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | Data survives redeploy | 1, 2 | Not started |
+| A6 | MCP authorization via OAuth; fallback documented if not feasible | Authorization layer | Claude Code connected to the production /mcp endpoint via AuthKit OAuth; whoami returned the signed-in user (2026-11-10). Verified at Gate 3 with portfolio tools. | 1, 3 | In progress |
+| H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | User rows persist across redeploys. Verified at Gate 2 when lots survive a redeploy. | 1, 2 | In progress |
 | H2 | Add and update holdings | Holdings forms and API | Manual walkthrough | 2 | Not started |
 | M1 | Quotes from an external market-data API | Quote service | Live quote displayed with source | 2 | Not started |
 | M2 | Store price history | Quotes table with daily snapshot job | Rows accumulate daily; chart on research page | 2 | Not started |
@@ -52,7 +52,7 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 | U3 | Accessible controls (beyond rubric) | Native buttons, visible focus, status announcements | Keyboard-only walkthrough | 4 | Not started |
 | U4 | Reviewed design and copy | Copy pass | Codebase scan of README, docs, and templates for em dashes, stock phrasing, and no generic purple gradients | 4 | Not started |
 | U5 | Design references and iterations documented | docs/design/ | Screenshots present | 0, 4 | Not started |
-| S1 | Fictional data only; no credentials in code or recording | Sample portfolio; environment variables | Secret scan of full git history | 1, 5 | Not started |
+| S1 | Fictional data only; no credentials in code or recording | Sample portfolio; environment variables | .env is gitignored; production secrets set only in Render. Verified after Gate 5 full-history secret scan. | 1, 5 | In progress |
 | E1 | Evaluation cases: inputs, expected behavior, actual results, assessment | evals/ | Document review | 3, 4 | Not started |
 | E2 | Model and configuration identified | Recorded per run with prompt and case-set versions | Document review | 3 | Not started |
 | E3 | Development and held-out cases separated; pass rules written before runs (beyond rubric) | evals/ | Document review | 3, 4 | Not started |

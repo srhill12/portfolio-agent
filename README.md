@@ -35,7 +35,7 @@ Open `http://localhost:8000`.
 | `DATABASE_URL_DIRECT` | Neon **direct** URL for Alembic (`sslmode=require`) |
 | `WORKOS_API_KEY` | WorkOS API key |
 | `WORKOS_CLIENT_ID` | WorkOS client id |
-| `WORKOS_COOKIE_PASSWORD` | Fernet key, min 32 chars: `openssl rand -base64 32` |
+| `WORKOS_COOKIE_PASSWORD` | Fernet key, min 32 chars: `python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"` |
 | `AUTHKIT_DOMAIN` | e.g. `https://your-project.authkit.app` |
 
 ## WorkOS checklist (short)
@@ -48,7 +48,9 @@ Open `http://localhost:8000`.
 
 ## Render
 
-See `render.yaml`. Start command runs migrations then Uvicorn on `$PORT`. Set the same env vars in the Render dashboard; `BASE_URL` must be the public HTTPS URL.
+Live URL: https://portfolio-agent-nt7v.onrender.com
+
+See `render.yaml`. Start command runs migrations then Uvicorn on `$PORT`. Set the same env vars in the Render dashboard; `BASE_URL` must be the public HTTPS URL. Render assigned a suffixed hostname; `BASE_URL` and `ALLOWED_ORIGINS` must match it exactly.
 
 ## Health
 

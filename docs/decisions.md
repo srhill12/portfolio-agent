@@ -27,7 +27,10 @@
 
 **Fallback plan:** If the spike fails, FastMCP's GitHub provider; if that fails, scoped and revocable personal access tokens issued after sign-in, with the tradeoff documented.
 
-**Amendment (2026-10-18):** Added Google as a second sign-in method. The assessment fails any deliverable a reviewer cannot access, and a GitHub-only sign-in assumed every reviewer has a GitHub account. AuthKit's hosted page serves both web and MCP sign-in, so this required configuration only, no code changes. Staging uses WorkOS demo Google credentials; a production handoff would register the client's own Google OAuth app.
+**Amendment (2026-10-18):** Added Google as a second sign-in method. The assessment fails any deliverable a reviewer cannot access, and a GitHub-only sign-in assumed every reviewer has a GitHub account. AuthKit's hosted page serves both web and MCP sign-in, so this required configuration only, no code changes. Staging uses WorkOS demo OAuth credentials for both GitHub and Google, so provider consent screens show WorkOS rather than the app name; a production handoff would register the client's own GitHub and Google OAuth apps.
+
+- AuthKit sign-in methods are limited to GitHub and Google. Email and password, Magic Auth, and enterprise SSO are disabled, so the hosted sign-in page shows only the two OAuth buttons.
+- Staging constraint: WorkOS issues MCP tokens for the default resource indicator. The production /mcp URL is the default; local MCP testing requires temporarily switching the default to http://localhost:8000/mcp.
 
 ## 2026-10-18: Render Starter plan in Ohio region
 
