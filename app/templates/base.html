@@ -22,7 +22,7 @@
         min-height: 100vh;
       }
       main {
-        max-width: 40rem;
+        max-width: 48rem;
         margin: 0 auto;
         padding: 3rem 1.25rem;
       }
@@ -30,6 +30,10 @@
         font-size: clamp(2rem, 5vw, 2.75rem);
         line-height: 1.1;
         margin: 0 0 0.75rem;
+      }
+      h2 {
+        font-size: 1.25rem;
+        margin: 2rem 0 0.75rem;
       }
       p { color: var(--muted); line-height: 1.5; }
       a.button, button {
@@ -44,6 +48,11 @@
         font: inherit;
         cursor: pointer;
       }
+      button.secondary, a.secondary {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
       header {
         display: flex;
         justify-content: space-between;
@@ -54,6 +63,45 @@
         border-bottom: 1px solid var(--line);
       }
       .brand { font-weight: 600; letter-spacing: 0.02em; }
+      .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+      .actions a.button, .actions button { margin-top: 0; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.5rem 0 1.25rem;
+        font-size: 0.95rem;
+      }
+      th, td {
+        text-align: left;
+        padding: 0.45rem 0.35rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 500; }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      label {
+        display: block;
+        margin: 1rem 0 0.35rem;
+        font-weight: 500;
+      }
+      input, select {
+        width: 100%;
+        padding: 0.55rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 0.35rem;
+        font: inherit;
+        background: #fff;
+      }
+      .error {
+        color: #8b1e1e;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0;
+      }
+      .field-error input, .field-error select {
+        border-color: #8b1e1e;
+      }
+      .muted { color: var(--muted); }
+      .row-actions a { margin-right: 0.75rem; }
     </style>
   </head>
   <body>

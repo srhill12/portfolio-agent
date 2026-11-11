@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,6 +13,13 @@ from app.models.base import Base
 
 class Lot(Base):
     __tablename__ = "lots"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "idempotency_key",
+            name="uq_lots_user_idempotency_key",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -33,9 +40,7 @@ class Lot(Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     purchase_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    idempotency_key: Mapped[str | None] = mapped_column(
-        String(255), unique=True, nullable=True
-    )
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

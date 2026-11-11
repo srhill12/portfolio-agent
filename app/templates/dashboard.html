@@ -9,5 +9,77 @@
     </form>
   </header>
   <h1>Welcome{{ (", " ~ user.name) if user.name else "" }}</h1>
-  <p>Your dashboard is ready. Holdings and analysis will show up here in later checkpoints.</p>
+
+  {% if not accounts %}
+    <p>You do not have any accounts yet. Add an investment or retirement account, then add holdings.</p>
+    <div class="actions">
+      <a class="button" href="/accounts/new">Add an account</a>
+    </div>
+  {% else %}
+    <div class="actions">
+      <a class="button" href="/accounts/new">Add an account</a>
+      <a class="button secondary" href="/holdings/new">Add a holding</a>
+    </div>
+
+    {% for section in account_sections %}
+      <h2>{{ section.account.name }} <span class="muted">({{ section.account.type.value }})</span></h2>
+      <p><a href="/accounts/{{ section.account.id }}/edit">Rename account</a></p>
+      {% if section.lots %}
+        <table>
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th class="num">Quantity</th>
+              <th class="num">Unit cost</th>
+              <th class="num">Cost basis</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in section.lots %}
+              <tr>
+                <td>{{ row.lot.ticker }}</td>
+                <td class="num">{{ row.lot.quantity }}</td>
+                <td class="num">{{ row.lot.unit_cost }}</td>
+                <td class="num">{{ row.cost_basis }}</td>
+                <td class="row-actions">
+                  <a href="/holdings/{{ row.lot.id }}/edit">Edit</a>
+                  <a href="/holdings/{{ row.lot.id }}/delete">Delete</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="muted">No holdings in this account yet.</p>
+      {% endif %}
+    {% endfor %}
+
+    <h2>Combined by ticker</h2>
+    {% if combined %}
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th class="num">Total quantity</th>
+            <th class="num">Average cost</th>
+            <th class="num">Cost basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in combined %}
+            <tr>
+              <td>{{ row.ticker }}</td>
+              <td class="num">{{ row.total_quantity }}</td>
+              <td class="num">{{ row.average_cost }}</td>
+              <td class="num">{{ row.total_cost }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="muted">Market value and gain columns will appear once live prices are wired in.</p>
+    {% else %}
+      <p class="muted">Add a holding to see combined positions.</p>
+    {% endif %}
+  {% endif %}
 {% endblock %}

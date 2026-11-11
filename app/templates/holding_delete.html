@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Delete holding · Portfolio Tracker{% endblock %}
+{% block content %}
+  <header>
+    <div class="brand">Portfolio Tracker</div>
+    <a href="/dashboard">Back to dashboard</a>
+  </header>
+  <h1>Delete holding</h1>
+  <p>
+    Delete {{ lot.quantity }} shares of {{ lot.ticker }}
+    {% if lot.account %} in {{ lot.account.name }}{% endif %}?
+    This cannot be undone.
+  </p>
+  <form method="post" action="/holdings/{{ lot.id }}/delete">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="actions">
+      <button type="submit">Delete holding</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

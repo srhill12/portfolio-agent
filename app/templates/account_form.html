@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{% if account %}Rename account{% else %}Add an account{% endif %} · Portfolio Tracker{% endblock %}
+{% block content %}
+  <header>
+    <div class="brand">Portfolio Tracker</div>
+    <a href="/dashboard">Back to dashboard</a>
+  </header>
+  <h1>{% if account %}Rename account{% else %}Add an account{% endif %}</h1>
+
+  <form method="post" action="{% if account %}/accounts/{{ account.id }}{% else %}/accounts{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    <div class="{% if errors.name %}field-error{% endif %}">
+      <label for="name">Account name</label>
+      <input id="name" name="name" type="text" value="{{ form.name }}" maxlength="100" required />
+      {% if errors.name %}<p class="error">{{ errors.name }}</p>{% endif %}
+    </div>
+
+    {% if not account %}
+      <div class="{% if errors.type %}field-error{% endif %}">
+        <label for="type">Account type</label>
+        <select id="type" name="type">
+          <option value="investment" {% if form.type == "investment" %}selected{% endif %}>Investment</option>
+          <option value="retirement" {% if form.type == "retirement" %}selected{% endif %}>Retirement</option>
+        </select>
+        {% if errors.type %}<p class="error">{{ errors.type }}</p>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="actions">
+      <button type="submit">{% if account %}Save name{% else %}Create account{% endif %}</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

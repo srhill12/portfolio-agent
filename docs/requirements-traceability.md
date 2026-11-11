@@ -14,20 +14,20 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 | K1 | Stack fit, alternatives considered, and operational tradeoffs explained | docs/decisions.md and video topic 2 | Document review | 0, 5 | In progress |
 | K2 | Client-brief assumptions documented; consequential ones explained in video | docs/assumptions.md and video topic 1 | Document review | 0, 5 | In progress |
 | A1 | OAuth sign-in, no local passwords | WorkOS AuthKit (GitHub or Google) | No password columns in models or migrations; AuthKit limited to GitHub and Google; both verified on production 2026-11-10. | 1 | Verified |
-| A2 | Users access and change only their own portfolio: web app | Session-derived user ID; all queries filter by user | Cross-user test: second user gets 404 on first user's holding | 2 | Not started |
-| A3 | Same isolation: backend API | Shared service layer | Cross-user test via API | 2 | Not started |
+| A2 | Users access and change only their own portfolio: web app | Session-derived user ID; all queries filter by user | test_route_b_cannot_mutate_a_lot | 2 | In progress |
+| A3 | Same isolation: backend API | Shared service layer | test_service_b_cannot_access_a_lot | 2 | In progress |
 | A4 | Same isolation: agent | User ID injected server-side into agent tools | Code review and test that tools ignore model-supplied IDs | 3 | Not started |
 | A5 | Same isolation: MCP | Token resolves to user ID; shared service layer | MCP session as second user cannot read or edit first user's data | 3 | Not started |
 | A6 | MCP authorization via OAuth; fallback documented if not feasible | Authorization layer | Claude Code connected to the production /mcp endpoint via AuthKit OAuth; whoami returned the signed-in user (2026-11-10). Verified at Gate 3 with portfolio tools. | 1, 3 | In progress |
 | H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | User rows persist across redeploys. Verified at Gate 2 when lots survive a redeploy. | 1, 2 | In progress |
-| H2 | Add and update holdings | Holdings forms and API | Manual walkthrough | 2 | Not started |
+| H2 | Add and update holdings | Holdings forms and API | Manual walkthrough; test_idempotency_same_user_and_cross_user | 2 | In progress |
 | M1 | Quotes from an external market-data API | Quote service | Live quote displayed with source | 2 | Not started |
 | M2 | Store price history | Quotes table with daily snapshot job | Rows accumulate daily; chart on research page | 2 | Not started |
 | M3 | Timestamps, stale data, and unavailable data are understandable | Market-aware status labels | Screenshot of each state | 2 | Not started |
 | M4 | Provider refresh limits explained | README and in-app note | Document review | 2 | Not started |
-| C1 | Holding and portfolio value, unrealized gain/loss | Calculations module using exact decimal math | Matches hand-computed spreadsheet | 2 | Not started |
-| C2 | Combined positions across accounts | Weighted-average cost rollup | Same ticker in two accounts matches spreadsheet | 2 | Not started |
-| C3 | Currency, fees, dividends, and cost basis assumptions documented | docs/assumptions.md and README | Document review | 2 | Not started |
+| C1 | Holding and portfolio value, unrealized gain/loss | Calculations module using exact decimal math | test_hand_checkable_combined_googl_and_portfolio; test_missing_price_excluded_from_totals; test_zero_cost_basis_pct_is_none | 2 | In progress |
+| C2 | Combined positions across accounts | Weighted-average cost rollup | test_hand_checkable_combined_googl_and_portfolio | 2 | In progress |
+| C3 | Currency, fees, dividends, and cost basis assumptions documented | docs/assumptions.md and README | Document review (Calculations section in docs/assumptions.md) | 2 | In progress |
 | F1 | Maintain favorite tickers | Favorites table and UI | Walkthrough | 2 | Not started |
 | F2 | Inspect stock information for basic research | Research page: quote, profile, news, history | Walkthrough | 2 | Not started |
 | G1 | Monthly analysis | Scheduled job | Manually fired job produces a scheduled run | 3 | Not started |
@@ -45,7 +45,7 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 | P5 | MCP connection instructions | README section; SDK and protocol versions pinned | Followed from scratch on a clean setup | 3, 5 | Not started |
 | R1 | Invalid input handling | Validation on client and server | Document and walkthrough review | 4 | Not started |
 | R2 | External-service failure handling | Fallbacks; failures never shown as empty data | Simulated provider and model failures | 3, 4 | Not started |
-| R3 | Retries do not duplicate holdings | Idempotency key with unique constraint | Test | 2 | Not started |
+| R3 | Retries do not duplicate holdings | Idempotency key with unique constraint | test_idempotency_same_user_and_cross_user | 2 | In progress |
 | R4 | Repeated agent runs do not mislead history | One scheduled run per month enforced by database; manual runs labeled; in-progress lock | Double-click and double-trigger tests | 3 | Not started |
 | U1 | Coherent navigation and readable layouts | Design pass | Walkthrough including phone width | 4 | Not started |
 | U2 | Loading, empty, and error states | All pages | Per-page checklist | 4 | Not started |

@@ -11,11 +11,17 @@ cd portfolio-agent
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env
 # Fill in every value in .env (see below)
 alembic upgrade head
 uvicorn app.main:app --host localhost --port 8000
+```
+
+Run tests (calculation tests always; isolation tests need `TEST_DATABASE_URL`):
+
+```bash
+pytest
 ```
 
 On startup the process prints:
