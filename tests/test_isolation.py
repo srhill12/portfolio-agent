@@ -235,3 +235,60 @@ def test_idempotency_same_user_and_cross_user(users_and_lot: dict) -> None:
     assert other.repeated is False
     assert other.lot.id != first.lot.id
     assert other.lot.user_id == user_b.id
+
+
+def test_post_holdings_rejects_bad_csrf(users_and_lot: dict) -> None:
+    db = users_and_lot["db"]
+    user_a = users_and_lot["user_a"]
+    account_a = users_and_lot["account_a"]
+    before = len(holdings_service.list_lots(db, user_a.id))
+
+    app = create_app()
+
+    def override_user() -> User:
+        return user_a
+
+    def override_db():
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_current_web_user] = override_user
+    app.dependency_overrides[get_db] = override_db
+
+    with TestClient(app) as client:
+        client.cookies.set("csrf_token", "cookie-csrf")
+        wrong = client.post(
+            "/holdings",
+            data={
+                "csrf_token": "wrong-csrf",
+                "account_id": str(account_a.id),
+                "ticker": "MSFT",
+                "quantity": "1",
+                "unit_cost": "10",
+                "purchase_date": "",
+                "idempotency_key": str(uuid.uuid4()),
+            },
+            follow_redirects=False,
+        )
+        assert wrong.status_code == 303
+        assert "/dashboard" in wrong.headers.get("location", "")
+
+        missing = client.post(
+            "/holdings",
+            data={
+                "account_id": str(account_a.id),
+                "ticker": "MSFT",
+                "quantity": "1",
+                "unit_cost": "10",
+                "purchase_date": "",
+                "idempotency_key": str(uuid.uuid4()),
+            },
+            follow_redirects=False,
+        )
+        assert missing.status_code in {303, 422}
+
+    after = len(holdings_service.list_lots(db, user_a.id))
+    assert after == before
+    app.dependency_overrides.clear()

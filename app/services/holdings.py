@@ -16,6 +16,7 @@ from app.services.errors import NotFoundError, ValidationError
 
 _TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
 _MAX_DECIMAL_PLACES = 8
+_MAX_AMOUNT = Decimal("1000000000000")  # 1,000,000,000,000
 
 
 @dataclass(frozen=True)
@@ -43,10 +44,10 @@ def add_lot(
     purchase_date: date | str | None,
     idempotency_key: str | None,
 ) -> AddLotResult:
-    cleaned_ticker = _validate_ticker(ticker)
-    qty = _validate_positive_decimal(quantity, field="quantity", label="Quantity")
-    cost = _validate_positive_decimal(unit_cost, field="unit_cost", label="Unit cost")
-    purchased = _validate_purchase_date(purchase_date)
+    cleaned_ticker = validate_ticker(ticker)
+    qty = validate_positive_decimal(quantity, field="quantity", label="Quantity")
+    cost = validate_positive_decimal(unit_cost, field="unit_cost", label="Unit cost")
+    purchased = validate_purchase_date(purchase_date)
     key = (idempotency_key or "").strip() or None
 
     if key:
@@ -103,15 +104,16 @@ def update_lot(
     if account is None:
         raise NotFoundError()
 
+    cleaned_ticker = validate_ticker(ticker)
+    qty = validate_positive_decimal(quantity, field="quantity", label="Quantity")
+    cost = validate_positive_decimal(unit_cost, field="unit_cost", label="Unit cost")
+    purchased = validate_purchase_date(purchase_date)
+
     lot.account_id = account.id
-    lot.ticker = _validate_ticker(ticker)
-    lot.quantity = _validate_positive_decimal(
-        quantity, field="quantity", label="Quantity"
-    )
-    lot.unit_cost = _validate_positive_decimal(
-        unit_cost, field="unit_cost", label="Unit cost"
-    )
-    lot.purchase_date = _validate_purchase_date(purchase_date)
+    lot.ticker = cleaned_ticker
+    lot.quantity = qty
+    lot.unit_cost = cost
+    lot.purchase_date = purchased
     db.commit()
     db.refresh(lot)
     return lot
@@ -125,7 +127,7 @@ def delete_lot(db: Session, user_id: uuid.UUID, lot_id: uuid.UUID) -> None:
     db.commit()
 
 
-def _validate_ticker(ticker: str) -> str:
+def validate_ticker(ticker: str) -> str:
     cleaned = (ticker or "").strip().upper()
     if not _TICKER_RE.match(cleaned):
         raise ValidationError(
@@ -135,7 +137,7 @@ def _validate_ticker(ticker: str) -> str:
     return cleaned
 
 
-def _validate_positive_decimal(
+def validate_positive_decimal(
     value: str | Decimal, *, field: str, label: str
 ) -> Decimal:
     if isinstance(value, Decimal):
@@ -157,7 +159,10 @@ def _validate_positive_decimal(
             f"{label} must be a number greater than zero.",
             field=field,
         )
-    if abs(number.as_tuple().exponent) > _MAX_DECIMAL_PLACES:
+    if number >= _MAX_AMOUNT:
+        raise ValidationError(f"{label} is too large.", field=field)
+    exponent = number.as_tuple().exponent
+    if isinstance(exponent, int) and exponent < 0 and abs(exponent) > _MAX_DECIMAL_PLACES:
         raise ValidationError(
             f"{label} can have at most {_MAX_DECIMAL_PLACES} decimal places.",
             field=field,
@@ -165,7 +170,7 @@ def _validate_positive_decimal(
     return number
 
 
-def _validate_purchase_date(value: date | str | None) -> date | None:
+def validate_purchase_date(value: date | str | None) -> date | None:
     if value is None or value == "":
         return None
     if isinstance(value, date):

@@ -46,6 +46,7 @@ class PositionWeight:
 @dataclass(frozen=True)
 class PortfolioSummary:
     total_cost: Decimal
+    priced_cost: Decimal
     total_market_value: Decimal
     total_unrealized_gain: Decimal | None
     total_unrealized_pct: Decimal | None
@@ -56,6 +57,7 @@ class PortfolioSummary:
 _MONEY_QUANT = Decimal("0.01")
 _PCT_QUANT = Decimal("0.01")
 _ZERO = Decimal("0")
+_HUNDRED = Decimal("100")
 
 
 def lot_metrics(lot: LotInput, price: Decimal | None) -> LotMetrics:
@@ -131,11 +133,14 @@ def portfolio_summary(
     unpriced = [p.ticker for p in positions if p.market_value is None]
     priced = [p for p in positions if p.market_value is not None]
 
-    total_cost = sum((p.total_cost for p in priced), _ZERO)
+    total_cost = sum((p.total_cost for p in positions), _ZERO)
+    priced_cost = sum((p.total_cost for p in priced), _ZERO)
     total_market_value = sum((p.market_value for p in priced), _ZERO)  # type: ignore[misc]
+
     if not priced:
         return PortfolioSummary(
-            total_cost=_ZERO,
+            total_cost=total_cost,
+            priced_cost=priced_cost,
             total_market_value=_ZERO,
             total_unrealized_gain=None,
             total_unrealized_pct=None,
@@ -143,9 +148,9 @@ def portfolio_summary(
             unpriced_tickers=unpriced,
         )
 
-    total_unrealized_gain = total_market_value - total_cost
+    total_unrealized_gain = total_market_value - priced_cost
     total_unrealized_pct = (
-        None if total_cost == _ZERO else total_unrealized_gain / total_cost
+        None if priced_cost == _ZERO else total_unrealized_gain / priced_cost
     )
     weights: list[PositionWeight] = []
     if total_market_value != _ZERO:
@@ -159,6 +164,7 @@ def portfolio_summary(
             )
     return PortfolioSummary(
         total_cost=total_cost,
+        priced_cost=priced_cost,
         total_market_value=total_market_value,
         total_unrealized_gain=total_unrealized_gain,
         total_unrealized_pct=total_unrealized_pct,
@@ -172,5 +178,37 @@ def round_money(value: Decimal) -> Decimal:
 
 
 def round_percent(value: Decimal) -> Decimal:
-    """Round a fractional percentage (0.15 -> 0.15) to 2 decimal places."""
-    return value.quantize(_PCT_QUANT, rounding=ROUND_HALF_UP)
+    """Convert a fraction to percentage points rounded to 2 places (0.141909 -> 14.19)."""
+    return (value * _HUNDRED).quantize(_PCT_QUANT, rounding=ROUND_HALF_UP)
+
+
+def plain_decimal(value: Decimal) -> str:
+    """Strip trailing zeros for form prefills (no thousands separators)."""
+    text = format(value, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
+
+
+def format_quantity(value: Decimal) -> str:
+    """Strip trailing zeros and add thousands separators."""
+    text = plain_decimal(value)
+    negative = text.startswith("-")
+    if negative:
+        text = text[1:]
+    if "." in text:
+        whole, frac = text.split(".", 1)
+        whole = f"{int(whole):,}"
+        result = f"{whole}.{frac}"
+    else:
+        result = f"{int(text):,}"
+    return f"-{result}" if negative else result
+
+
+def format_money(value: Decimal) -> str:
+    rounded = round_money(value)
+    return f"${rounded:,.2f}"
+
+
+def format_percent(fraction: Decimal) -> str:
+    return f"{round_percent(fraction)}%"

@@ -10,7 +10,17 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.auth import session as auth_session
-from app.calculations import LotInput, combine_positions, lot_metrics, round_money
+from decimal import Decimal
+
+from app.calculations import (
+    LotInput,
+    combine_positions,
+    format_money,
+    format_percent,
+    format_quantity,
+    lot_metrics,
+    plain_decimal,
+)
 from app.config import get_settings
 from app.db import get_db
 from app.models import User
@@ -29,6 +39,29 @@ router = APIRouter(tags=["web"])
 templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent.parent / "templates")
 )
+
+
+def _money_filter(value: Decimal | str | int | float | None) -> str:
+    if value is None or value == "":
+        return ""
+    return format_money(Decimal(str(value)))
+
+
+def _quantity_filter(value: Decimal | str | int | float | None) -> str:
+    if value is None or value == "":
+        return ""
+    return format_quantity(Decimal(str(value)))
+
+
+def _percent_filter(value: Decimal | str | int | float | None) -> str:
+    if value is None or value == "":
+        return ""
+    return format_percent(Decimal(str(value)))
+
+
+templates.env.filters["money"] = _money_filter
+templates.env.filters["quantity"] = _quantity_filter
+templates.env.filters["percent"] = _percent_filter
 
 
 def _csrf_for_request(request: Request) -> tuple[str, bool]:
@@ -89,7 +122,7 @@ def dashboard(
             rows.append(
                 {
                     "lot": lot,
-                    "cost_basis": round_money(metrics.cost_basis),
+                    "cost_basis": metrics.cost_basis,
                 }
             )
         account_sections.append({"account": account, "lots": rows})
@@ -102,8 +135,8 @@ def dashboard(
         {
             "ticker": position.ticker,
             "total_quantity": position.total_quantity,
-            "average_cost": round_money(position.average_cost),
-            "total_cost": round_money(position.total_cost),
+            "average_cost": position.average_cost,
+            "total_cost": position.total_cost,
         }
         for position in combine_positions(lot_inputs, {})
     ]
@@ -451,8 +484,8 @@ def edit_holding_form(
             "form": {
                 "account_id": str(lot.account_id),
                 "ticker": lot.ticker,
-                "quantity": str(lot.quantity),
-                "unit_cost": str(lot.unit_cost),
+                "quantity": plain_decimal(lot.quantity),
+                "unit_cost": plain_decimal(lot.unit_cost),
                 "purchase_date": lot.purchase_date.isoformat() if lot.purchase_date else "",
             },
             "errors": {},

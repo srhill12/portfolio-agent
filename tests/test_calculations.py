@@ -46,6 +46,7 @@ def test_hand_checkable_combined_googl_and_portfolio() -> None:
 
     summary = portfolio_summary(lots, prices)
     assert summary.total_cost == Decimal("3770.00")
+    assert summary.priced_cost == Decimal("3770.00")
     assert summary.total_market_value == Decimal("4305.00")
     assert summary.total_unrealized_gain == Decimal("535.00")
     assert summary.total_unrealized_pct == Decimal("535") / Decimal("3770")
@@ -54,7 +55,7 @@ def test_hand_checkable_combined_googl_and_portfolio() -> None:
     assert weights["GOOGL"] == Decimal("2625") / Decimal("4305")
     assert weights["AAPL"] == Decimal("1680") / Decimal("4305")
     assert round_money(summary.total_market_value) == Decimal("4305.00")
-    assert round_percent(summary.total_unrealized_pct) == Decimal("0.14")
+    assert round_percent(summary.total_unrealized_pct) == Decimal("14.19")
 
 
 def test_missing_price_excluded_from_totals() -> None:
@@ -67,7 +68,8 @@ def test_missing_price_excluded_from_totals() -> None:
 
     summary = portfolio_summary(lots, prices)
     assert summary.unpriced_tickers == ["AAPL"]
-    assert summary.total_cost == Decimal("1400.00")
+    assert summary.total_cost == Decimal("2920.00")
+    assert summary.priced_cost == Decimal("1400.00")
     assert summary.total_market_value == Decimal("1750.00")
     assert summary.total_unrealized_gain == Decimal("350.00")
     assert all(w.ticker != "AAPL" for w in summary.weights)

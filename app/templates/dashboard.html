@@ -39,9 +39,9 @@
             {% for row in section.lots %}
               <tr>
                 <td>{{ row.lot.ticker }}</td>
-                <td class="num">{{ row.lot.quantity }}</td>
-                <td class="num">{{ row.lot.unit_cost }}</td>
-                <td class="num">{{ row.cost_basis }}</td>
+                <td class="num">{{ row.lot.quantity|quantity }}</td>
+                <td class="num">{{ row.lot.unit_cost|money }}</td>
+                <td class="num">{{ row.cost_basis|money }}</td>
                 <td class="row-actions">
                   <a href="/holdings/{{ row.lot.id }}/edit">Edit</a>
                   <a href="/holdings/{{ row.lot.id }}/delete">Delete</a>
@@ -70,9 +70,9 @@
           {% for row in combined %}
             <tr>
               <td>{{ row.ticker }}</td>
-              <td class="num">{{ row.total_quantity }}</td>
-              <td class="num">{{ row.average_cost }}</td>
-              <td class="num">{{ row.total_cost }}</td>
+              <td class="num">{{ row.total_quantity|quantity }}</td>
+              <td class="num">{{ row.average_cost|money }}</td>
+              <td class="num">{{ row.total_cost|money }}</td>
             </tr>
           {% endfor %}
         </tbody>
