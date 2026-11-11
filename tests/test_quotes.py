@@ -122,3 +122,54 @@ def test_unknown_symbol_unavailable_never_zero(
     assert results["ZZZZ"].price is None
     assert results["ZZZZ"].price != Decimal("0")
     assert results["ZZZZ"].status == "unavailable"
+
+
+def test_forced_refresh_respects_sixty_second_floor(
+    db_session: Session, open_now: datetime
+) -> None:
+    fetched_at = open_now - timedelta(seconds=90)
+    quotes_repo.create(
+        db_session,
+        ticker="AAPL",
+        price=Decimal("210.00"),
+        as_of=fetched_at,
+        fetched_at=fetched_at,
+        source="finnhub",
+        snapshot_date=None,
+    )
+    db_session.commit()
+
+    client = FakeClient()
+    client.responses["AAPL"] = QuoteResult(
+        price=Decimal("211.00"), as_of=open_now, source="finnhub"
+    )
+
+    at_30s = fetched_at + timedelta(seconds=30)
+    early = quotes_service.get_prices(
+        db_session,
+        ["AAPL"],
+        client=client,
+        now=at_30s,
+        force_refresh=True,
+        pause_seconds=0,
+    )
+    assert client.calls == []
+    assert early["AAPL"].price == Decimal("210.00")
+    assert quotes_service.any_ticker_needs_forced_refresh(
+        db_session, ["AAPL"], now=at_30s
+    ) is False
+
+    at_90s = fetched_at + timedelta(seconds=90)
+    later = quotes_service.get_prices(
+        db_session,
+        ["AAPL"],
+        client=client,
+        now=at_90s,
+        force_refresh=True,
+        pause_seconds=0,
+    )
+    assert client.calls == ["AAPL"]
+    assert later["AAPL"].price == Decimal("211.00")
+    assert quotes_service.any_ticker_needs_forced_refresh(
+        db_session, ["AAPL"], now=at_90s
+    ) is False

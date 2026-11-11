@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import secrets
-import time
 import uuid
 from decimal import Decimal
 from pathlib import Path
@@ -218,17 +217,10 @@ def refresh_prices(
     db: Session = Depends(get_db),
     _csrf: str = Depends(require_csrf),
 ) -> HTMLResponse:
-    settings = get_settings()
-    now = int(time.time())
-    raw = request.cookies.get(settings.price_refresh_cookie_name)
+    lots = holdings_service.list_lots(db, user.id)
+    tickers = [lot.ticker for lot in lots]
     refresh_message = None
-    force = True
-    try:
-        last = int(raw) if raw else 0
-    except ValueError:
-        last = 0
-    if last and now - last < 60:
-        force = False
+    if tickers and not quotes_service.any_ticker_needs_forced_refresh(db, tickers):
         refresh_message = (
             "Prices were refreshed less than a minute ago. Try again shortly."
         )
@@ -237,22 +229,11 @@ def refresh_prices(
         request,
         user,
         db,
-        force_refresh=force,
+        force_refresh=True,
         refresh_message=refresh_message,
     )
     response = templates.TemplateResponse(request, "dashboard.html", context)
-    response = _attach_csrf(response, csrf_token, set_csrf)
-    if force:
-        response.set_cookie(
-            key=settings.price_refresh_cookie_name,
-            value=str(now),
-            max_age=120,
-            httponly=True,
-            samesite="lax",
-            secure=settings.cookie_secure,
-            path="/",
-        )
-    return response
+    return _attach_csrf(response, csrf_token, set_csrf)
 
 
 @router.post("/sample-portfolio", response_class=HTMLResponse, response_model=None)

@@ -17,6 +17,7 @@ from app.services.errors import ProviderUnavailable
 logger = logging.getLogger(__name__)
 
 CACHE_TTL = timedelta(minutes=5)
+FORCE_REFRESH_MIN_AGE = timedelta(seconds=60)
 _INTER_CALL_PAUSE_SECONDS = 0.6
 
 
@@ -31,6 +32,33 @@ class TickerQuote:
     source: str | None
 
 
+def _unique_tickers(tickers: list[str]) -> list[str]:
+    unique: list[str] = []
+    seen: set[str] = set()
+    for raw in tickers:
+        ticker = (raw or "").strip().upper()
+        if ticker and ticker not in seen:
+            seen.add(ticker)
+            unique.append(ticker)
+    return unique
+
+
+def any_ticker_needs_forced_refresh(
+    db: Session,
+    tickers: list[str],
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """True if at least one ticker has no quote or one older than 60 seconds."""
+    clock = now or datetime.now(timezone.utc)
+    cutoff = clock - FORCE_REFRESH_MIN_AGE
+    for ticker in _unique_tickers(tickers):
+        latest = quotes_repo.get_latest_for_ticker(db, ticker)
+        if latest is None or latest.fetched_at < cutoff:
+            return True
+    return False
+
+
 def get_prices(
     db: Session,
     tickers: list[str],
@@ -42,13 +70,7 @@ def get_prices(
 ) -> dict[str, TickerQuote]:
     """Resolve prices for tickers with cache, status labels, and fallbacks."""
     clock = now or datetime.now(timezone.utc)
-    unique: list[str] = []
-    seen: set[str] = set()
-    for raw in tickers:
-        ticker = (raw or "").strip().upper()
-        if ticker and ticker not in seen:
-            seen.add(ticker)
-            unique.append(ticker)
+    unique = _unique_tickers(tickers)
 
     owns_client = client is None
     quote_client: QuoteClient = client or FinnhubClient(_require_api_key())
@@ -85,7 +107,14 @@ def _resolve_one(
     now: datetime,
     force_refresh: bool,
 ) -> TickerQuote:
-    if not force_refresh:
+    if force_refresh:
+        latest = quotes_repo.get_latest_for_ticker(db, ticker)
+        if (
+            latest is not None
+            and latest.fetched_at >= now - FORCE_REFRESH_MIN_AGE
+        ):
+            return _from_stored(ticker, latest, now=now, provider_failure=False)
+    else:
         cached = quotes_repo.get_recent_cache(
             db, ticker, newer_than=now - CACHE_TTL
         )

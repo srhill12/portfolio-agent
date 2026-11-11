@@ -49,6 +49,19 @@ def test_weekend_closed() -> None:
     )
 
 
+def test_provider_failure_on_weekend_is_stale() -> None:
+    now = datetime(2026, 11, 14, 12, 0, tzinfo=ET)  # Saturday
+    assert (
+        classify_quote_status(
+            now=now,
+            as_of=datetime(2026, 11, 13, 16, 0, tzinfo=ET),
+            has_price=True,
+            from_provider_failure=True,
+        )
+        == "stale"
+    )
+
+
 def test_twenty_minute_stale_boundary() -> None:
     now = datetime(2026, 11, 11, 11, 0, tzinfo=ET)
     fresh = datetime(2026, 11, 11, 10, 40, tzinfo=ET)

@@ -35,4 +35,9 @@ class Account(Base):
     )
 
     user = relationship("User", back_populates="accounts")
-    lots = relationship("Lot", back_populates="account")
+    lots = relationship(
+        "Lot",
+        back_populates="account",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

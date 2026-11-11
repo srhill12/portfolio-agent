@@ -55,7 +55,6 @@ class Settings(BaseSettings):
     session_cookie_name: str = "wos_session"
     oauth_state_cookie_name: str = "oauth_state"
     csrf_cookie_name: str = "csrf_token"
-    price_refresh_cookie_name: str = "price_refresh_at"
 
     @field_validator(
         "base_url",

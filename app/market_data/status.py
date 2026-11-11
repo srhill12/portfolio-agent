@@ -31,13 +31,17 @@ def classify_quote_status(
     if not has_price or as_of is None:
         return "unavailable"
 
+    # Provider failure always means the shown price may be old, even after hours.
+    if from_provider_failure:
+        return "stale"
+
     market_open = is_us_equity_market_open(now)
     age = now - as_of.astimezone(now.tzinfo)
 
     if not market_open:
         return "closed"
 
-    if from_provider_failure or age > _LIVE_MAX_AGE:
+    if age > _LIVE_MAX_AGE:
         return "stale"
     return "live"
 
