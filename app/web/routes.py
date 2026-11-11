@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import secrets
+import time
 import uuid
+from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -10,8 +12,6 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.auth import session as auth_session
-from decimal import Decimal
-
 from app.calculations import (
     LotInput,
     combine_positions,
@@ -20,6 +20,7 @@ from app.calculations import (
     format_quantity,
     lot_metrics,
     plain_decimal,
+    portfolio_summary,
 )
 from app.config import get_settings
 from app.db import get_db
@@ -27,6 +28,8 @@ from app.models import User
 from app.models.enums import AccountType
 from app.services import accounts as accounts_service
 from app.services import holdings as holdings_service
+from app.services import quotes as quotes_service
+from app.services import sample_portfolio as sample_service
 from app.services import users as users_service
 from app.services.errors import NotFoundError, ValidationError
 from app.web.deps import (
@@ -97,15 +100,39 @@ def home(
     return templates.TemplateResponse(request, "landing.html", {"user": None})
 
 
-@router.get("/dashboard", response_class=HTMLResponse, response_model=None)
-def dashboard(
+def _price_map_for_lots(
+    db: Session,
+    lots: list,
+    *,
+    force_refresh: bool = False,
+) -> dict[str, quotes_service.TickerQuote]:
+    tickers = [lot.ticker for lot in lots]
+    try:
+        return quotes_service.get_prices(
+            db, tickers, force_refresh=force_refresh, pause_seconds=0.6
+        )
+    except Exception:
+        # Provider failures are handled per ticker inside get_prices; this is a
+        # last-resort guard so the dashboard never becomes an error page.
+        return {}
+
+
+def _dashboard_context(
     request: Request,
-    user: User = Depends(get_current_web_user),
-    db: Session = Depends(get_db),
-) -> HTMLResponse:
+    user: User,
+    db: Session,
+    *,
+    force_refresh: bool = False,
+    refresh_message: str | None = None,
+) -> tuple[dict, str, bool]:
     csrf_token, set_csrf = _csrf_for_request(request)
     accounts = accounts_service.list_accounts(db, user.id)
     lots = holdings_service.list_lots(db, user.id)
+    quotes = _price_map_for_lots(db, lots, force_refresh=force_refresh)
+    prices = {
+        ticker: (q.price if q.price is not None else None)
+        for ticker, q in quotes.items()
+    }
 
     lots_by_account: dict[uuid.UUID, list] = {a.id: [] for a in accounts}
     for lot in lots:
@@ -115,14 +142,20 @@ def dashboard(
     for account in accounts:
         rows = []
         for lot in lots_by_account.get(account.id, []):
+            quote = quotes.get(lot.ticker)
+            price = quote.price if quote else None
             metrics = lot_metrics(
                 LotInput(lot.ticker, lot.account_id, lot.quantity, lot.unit_cost),
-                None,
+                price,
             )
             rows.append(
                 {
                     "lot": lot,
                     "cost_basis": metrics.cost_basis,
+                    "market_value": metrics.market_value,
+                    "unrealized_gain": metrics.unrealized_gain,
+                    "unrealized_pct": metrics.unrealized_pct,
+                    "quote": quote,
                 }
             )
         account_sections.append({"account": account, "lots": rows})
@@ -131,28 +164,106 @@ def dashboard(
         LotInput(lot.ticker, lot.account_id, lot.quantity, lot.unit_cost)
         for lot in lots
     ]
-    combined = [
-        {
-            "ticker": position.ticker,
-            "total_quantity": position.total_quantity,
-            "average_cost": position.average_cost,
-            "total_cost": position.total_cost,
-        }
-        for position in combine_positions(lot_inputs, {})
-    ]
+    summary = portfolio_summary(lot_inputs, prices)
+    weight_by_ticker = {w.ticker: w.weight for w in summary.weights}
+    combined = []
+    for position in combine_positions(lot_inputs, prices):
+        quote = quotes.get(position.ticker)
+        combined.append(
+            {
+                "ticker": position.ticker,
+                "total_quantity": position.total_quantity,
+                "average_cost": position.average_cost,
+                "total_cost": position.total_cost,
+                "market_value": position.market_value,
+                "unrealized_gain": position.unrealized_gain,
+                "unrealized_pct": position.unrealized_pct,
+                "weight": weight_by_ticker.get(position.ticker),
+                "quote": quote,
+            }
+        )
 
-    response = templates.TemplateResponse(
-        request,
-        "dashboard.html",
-        {
-            "user": user,
-            "csrf_token": csrf_token,
-            "accounts": accounts,
-            "account_sections": account_sections,
-            "combined": combined,
-        },
+    is_sample = any(
+        a.name in {"Sample Brokerage", "Sample IRA"} for a in accounts
     )
+
+    context = {
+        "user": user,
+        "csrf_token": csrf_token,
+        "accounts": accounts,
+        "account_sections": account_sections,
+        "combined": combined,
+        "summary": summary,
+        "is_sample": is_sample,
+        "refresh_message": refresh_message,
+    }
+    return context, csrf_token, set_csrf
+
+
+@router.get("/dashboard", response_class=HTMLResponse, response_model=None)
+def dashboard(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    context, csrf_token, set_csrf = _dashboard_context(request, user, db)
+    response = templates.TemplateResponse(request, "dashboard.html", context)
     return _attach_csrf(response, csrf_token, set_csrf)
+
+
+@router.post("/dashboard/refresh-prices", response_class=HTMLResponse, response_model=None)
+def refresh_prices(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+    db: Session = Depends(get_db),
+    _csrf: str = Depends(require_csrf),
+) -> HTMLResponse:
+    settings = get_settings()
+    now = int(time.time())
+    raw = request.cookies.get(settings.price_refresh_cookie_name)
+    refresh_message = None
+    force = True
+    try:
+        last = int(raw) if raw else 0
+    except ValueError:
+        last = 0
+    if last and now - last < 60:
+        force = False
+        refresh_message = (
+            "Prices were refreshed less than a minute ago. Try again shortly."
+        )
+
+    context, csrf_token, set_csrf = _dashboard_context(
+        request,
+        user,
+        db,
+        force_refresh=force,
+        refresh_message=refresh_message,
+    )
+    response = templates.TemplateResponse(request, "dashboard.html", context)
+    response = _attach_csrf(response, csrf_token, set_csrf)
+    if force:
+        response.set_cookie(
+            key=settings.price_refresh_cookie_name,
+            value=str(now),
+            max_age=120,
+            httponly=True,
+            samesite="lax",
+            secure=settings.cookie_secure,
+            path="/",
+        )
+    return response
+
+
+@router.post("/sample-portfolio", response_class=HTMLResponse, response_model=None)
+def load_sample_portfolio(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+    db: Session = Depends(get_db),
+    _csrf: str = Depends(require_csrf),
+) -> RedirectResponse:
+    sample_service.load_sample_portfolio(db, user.id)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @router.get("/login")
@@ -347,6 +458,52 @@ def update_account(
             status_code=400,
         )
         return _attach_csrf(response, csrf_token, set_csrf)
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@router.get(
+    "/accounts/{account_id}/delete",
+    response_class=HTMLResponse,
+    response_model=None,
+)
+def delete_account_confirm(
+    account_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(get_current_web_user),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    account = accounts_service.get_account(db, user.id, account_id)
+    if account is None:
+        return templates.TemplateResponse(
+            request, "not_found.html", {"user": user}, status_code=404
+        )
+    csrf_token, set_csrf = _csrf_for_request(request)
+    response = templates.TemplateResponse(
+        request,
+        "account_delete.html",
+        {"user": user, "csrf_token": csrf_token, "account": account},
+    )
+    return _attach_csrf(response, csrf_token, set_csrf)
+
+
+@router.post(
+    "/accounts/{account_id}/delete",
+    response_class=HTMLResponse,
+    response_model=None,
+)
+def delete_account(
+    account_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(get_current_web_user),
+    db: Session = Depends(get_db),
+    _csrf: str = Depends(require_csrf),
+) -> HTMLResponse | RedirectResponse:
+    try:
+        accounts_service.delete_account(db, user.id, account_id)
+    except NotFoundError:
+        return templates.TemplateResponse(
+            request, "not_found.html", {"user": user}, status_code=404
+        )
     return RedirectResponse(url="/dashboard", status_code=303)
 
 

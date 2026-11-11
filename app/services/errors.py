@@ -10,3 +10,7 @@ class ValidationError(Exception):
         super().__init__(message)
         self.message = message
         self.field = field
+
+
+class ProviderUnavailable(Exception):
+    """External market-data provider timed out, rate-limited, or returned 5xx."""

@@ -53,6 +53,14 @@ def rename_account(
     return account
 
 
+def delete_account(db: Session, user_id: uuid.UUID, account_id: uuid.UUID) -> None:
+    account = accounts_repo.get_for_user(db, user_id, account_id)
+    if account is None:
+        raise NotFoundError()
+    accounts_repo.delete(db, account)
+    db.commit()
+
+
 def _validate_name(name: str) -> str:
     cleaned = (name or "").strip()
     if len(cleaned) < 1 or len(cleaned) > 100:

@@ -21,10 +21,10 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 | A6 | MCP authorization via OAuth; fallback documented if not feasible | Authorization layer | Claude Code connected to the production /mcp endpoint via AuthKit OAuth; whoami returned the signed-in user (2026-11-10). Verified at Gate 3 with portfolio tools. | 1, 3 | In progress |
 | H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | Brokerage account and AAPL lot created on production persisted across a manual redeploy (2026-11-11). | 1, 2 | Verified |
 | H2 | Add and update holdings | Holdings forms and API | Manual walkthrough; test_idempotency_same_user_and_cross_user | 2 | In progress |
-| M1 | Quotes from an external market-data API | Quote service | Live quote displayed with source | 2 | Not started |
-| M2 | Store price history | Quotes table with daily snapshot job | Rows accumulate daily; chart on research page | 2 | Not started |
-| M3 | Timestamps, stale data, and unavailable data are understandable | Market-aware status labels | Screenshot of each state | 2 | Not started |
-| M4 | Provider refresh limits explained | README and in-app note | Document review | 2 | Not started |
+| M1 | Quotes from an external market-data API | Quote service (`app/services/quotes.py`, Finnhub `/quote`) | test_cache_hit_makes_no_provider_call; test_provider_failure_falls_back_to_stored_stale; test_unknown_symbol_unavailable_never_zero | 2 | In progress |
+| M2 | Store price history | Quotes `snapshot_date` + `python -m app.jobs.snapshot_prices` | test_snapshot_twice_same_day_one_row_per_ticker | 2 | In progress |
+| M3 | Timestamps, stale data, and unavailable data are understandable | Market-aware status labels | test_weekday_open; test_weekday_after_close; test_weekend_closed; test_twenty_minute_stale_boundary | 2 | In progress |
+| M4 | Provider refresh limits explained | README Market data section; 5 minute cache; refresh button once per minute | Document review | 2 | In progress |
 | C1 | Holding and portfolio value, unrealized gain/loss | Calculations module using exact decimal math | test_hand_checkable_combined_googl_and_portfolio; test_missing_price_excluded_from_totals; test_zero_cost_basis_pct_is_none | 2 | In progress |
 | C2 | Combined positions across accounts | Weighted-average cost rollup | test_hand_checkable_combined_googl_and_portfolio | 2 | In progress |
 | C3 | Currency, fees, dividends, and cost basis assumptions documented | docs/assumptions.md and README | Document review (Calculations section in docs/assumptions.md) | 2 | In progress |

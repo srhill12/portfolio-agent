@@ -10,20 +10,62 @@
   </header>
   <h1>Welcome{{ (", " ~ user.name) if user.name else "" }}</h1>
 
+  {% if is_sample %}
+    <p class="muted">Fictional sample data for walkthroughs. Delete the sample accounts when you are ready to enter your own holdings.</p>
+  {% endif %}
+
+  {% if refresh_message %}
+    <p class="error">{{ refresh_message }}</p>
+  {% endif %}
+
   {% if not accounts %}
-    <p>You do not have any accounts yet. Add an investment or retirement account, then add holdings.</p>
+    <p>You do not have any accounts yet. Add an investment or retirement account, then add holdings. Or load a fictional sample portfolio to explore the dashboard.</p>
     <div class="actions">
       <a class="button" href="/accounts/new">Add an account</a>
+      <form action="/sample-portfolio" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="secondary">Load a sample portfolio</button>
+      </form>
     </div>
   {% else %}
     <div class="actions">
       <a class="button" href="/accounts/new">Add an account</a>
       <a class="button secondary" href="/holdings/new">Add a holding</a>
+      <form action="/dashboard/refresh-prices" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="secondary">Refresh prices</button>
+      </form>
     </div>
+
+    <h2>Portfolio totals</h2>
+    <p>Total invested: {{ summary.total_cost|money }}</p>
+    {% if summary.total_unrealized_gain is not none %}
+      <p>
+        Current value (priced holdings): {{ summary.total_market_value|money }}
+        · Gain: {{ summary.total_unrealized_gain|money }}
+        {% if summary.total_unrealized_pct is not none %}
+          ({{ summary.total_unrealized_pct|percent }})
+        {% endif %}
+      </p>
+    {% else %}
+      <p class="muted">Current value and gain are unavailable until at least one holding has a price.</p>
+    {% endif %}
+    {% if summary.unpriced_tickers %}
+      <p class="muted">
+        {{ summary.unpriced_tickers|join(", ") }}
+        {% if summary.unpriced_tickers|length == 1 %}has{% else %}have{% endif %}
+        no price and {% if summary.unpriced_tickers|length == 1 %}is{% else %}are{% endif %}
+        excluded from value and gain.
+      </p>
+    {% endif %}
 
     {% for section in account_sections %}
       <h2>{{ section.account.name }} <span class="muted">({{ section.account.type.value }})</span></h2>
-      <p><a href="/accounts/{{ section.account.id }}/edit">Rename account</a></p>
+      <p>
+        <a href="/accounts/{{ section.account.id }}/edit">Rename account</a>
+        ·
+        <a href="/accounts/{{ section.account.id }}/delete">Delete account</a>
+      </p>
       {% if section.lots %}
         <table>
           <thead>
@@ -32,16 +74,36 @@
               <th class="num">Quantity</th>
               <th class="num">Unit cost</th>
               <th class="num">Cost basis</th>
+              <th class="num">Price</th>
+              <th class="num">Market value</th>
+              <th class="num">Gain</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {% for row in section.lots %}
               <tr>
-                <td>{{ row.lot.ticker }}</td>
+                <td>
+                  {{ row.lot.ticker }}
+                  {% if row.quote %}
+                    <div class="muted">{{ row.quote.status_label }}</div>
+                  {% endif %}
+                </td>
                 <td class="num">{{ row.lot.quantity|quantity }}</td>
                 <td class="num">{{ row.lot.unit_cost|money }}</td>
                 <td class="num">{{ row.cost_basis|money }}</td>
+                <td class="num">{% if row.quote and row.quote.price is not none %}{{ row.quote.price|money }}{% else %}n/a{% endif %}</td>
+                <td class="num">{% if row.market_value is not none %}{{ row.market_value|money }}{% else %}n/a{% endif %}</td>
+                <td class="num">
+                  {% if row.unrealized_gain is not none %}
+                    {{ row.unrealized_gain|money }}
+                    {% if row.unrealized_pct is not none %}
+                      <div class="muted">{{ row.unrealized_pct|percent }}</div>
+                    {% endif %}
+                  {% else %}
+                    n/a
+                  {% endif %}
+                </td>
                 <td class="row-actions">
                   <a href="/holdings/{{ row.lot.id }}/edit">Edit</a>
                   <a href="/holdings/{{ row.lot.id }}/delete">Delete</a>
@@ -64,20 +126,39 @@
             <th class="num">Total quantity</th>
             <th class="num">Average cost</th>
             <th class="num">Cost basis</th>
+            <th class="num">Market value</th>
+            <th class="num">Gain</th>
+            <th class="num">Weight</th>
           </tr>
         </thead>
         <tbody>
           {% for row in combined %}
             <tr>
-              <td>{{ row.ticker }}</td>
+              <td>
+                {{ row.ticker }}
+                {% if row.quote %}
+                  <div class="muted">{{ row.quote.status_label }}</div>
+                {% endif %}
+              </td>
               <td class="num">{{ row.total_quantity|quantity }}</td>
               <td class="num">{{ row.average_cost|money }}</td>
               <td class="num">{{ row.total_cost|money }}</td>
+              <td class="num">{% if row.market_value is not none %}{{ row.market_value|money }}{% else %}n/a{% endif %}</td>
+              <td class="num">
+                {% if row.unrealized_gain is not none %}
+                  {{ row.unrealized_gain|money }}
+                  {% if row.unrealized_pct is not none %}
+                    <div class="muted">{{ row.unrealized_pct|percent }}</div>
+                  {% endif %}
+                {% else %}
+                  n/a
+                {% endif %}
+              </td>
+              <td class="num">{% if row.weight is not none %}{{ row.weight|percent }}{% else %}n/a{% endif %}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
-      <p class="muted">Market value and gain columns will appear once live prices are wired in.</p>
     {% else %}
       <p class="muted">Add a holding to see combined positions.</p>
     {% endif %}

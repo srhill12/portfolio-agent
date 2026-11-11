@@ -17,6 +17,7 @@ def test_settings_strips_trailing_whitespace_on_workos_client_id() -> None:
         WORKOS_CLIENT_ID="client_test ",
         WORKOS_COOKIE_PASSWORD=cookie,
         AUTHKIT_DOMAIN="https://example.authkit.app",
+        FINNHUB_API_KEY="finnhub_test_key",
     )
     assert settings.workos_client_id == "client_test"
     assert not settings.workos_client_id.endswith(" ")

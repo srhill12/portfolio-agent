@@ -38,3 +38,8 @@ def create(
     db.add(account)
     db.flush()
     return account
+
+
+def delete(db: Session, account: Account) -> None:
+    db.delete(account)
+    db.flush()

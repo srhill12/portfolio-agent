@@ -43,6 +43,34 @@ Open `http://localhost:8000`.
 | `WORKOS_CLIENT_ID` | WorkOS client id |
 | `WORKOS_COOKIE_PASSWORD` | Fernet key, min 32 chars: `python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"` |
 | `AUTHKIT_DOMAIN` | e.g. `https://your-project.authkit.app` |
+| `FINNHUB_API_KEY` | Finnhub API key (free plan; sent as `X-Finnhub-Token`) |
+
+## Market data
+
+Provider: [Finnhub](https://finnhub.io/) `/quote` for US equities.
+
+**Verified against Finnhub docs on 2026-11-11** ([Quote API](https://www.finnhub.io/docs/api/quote), rate limit notes in the Finnhub docs and free-plan reports):
+
+- `/quote` returns `c` (current price), `d` / `dp` (change), `h` / `l` / `o` / `pc` (session stats), and `t` (UNIX timestamp of the quote).
+- An unknown symbol returns an all-zero payload (including `c=0` and `t=0`). This app treats that as not found, never as a price of zero.
+- Free plan: 60 API calls per minute. Over the limit returns HTTP 429.
+- `/stock/candle` is not available on the free plan (returns access denied). Price history is built from our own daily snapshots instead.
+
+**Caching and status**
+
+- Successful fetches are stored in `quotes`. If a ticker was fetched in the last 5 minutes, the dashboard reuses that row and does not call Finnhub.
+- Status labels (America/New_York times):
+  - **Live:** market open and the quote `as_of` is within the last 20 minutes.
+  - **Market closed, as of …:** market closed; showing the last trade or close time.
+  - **Delayed: showing last saved price from …:** provider failed or the quote is older than 20 minutes while the market is open.
+  - **Price unavailable:** no provider price and nothing stored.
+- US market hours are weekdays 9:30 to 16:00 ET. **Holidays are not modeled.**
+
+**Daily snapshot job**
+
+- Render cron `portfolio-price-snapshot` runs `python -m app.jobs.snapshot_prices` on weekdays at `30 22 * * 1-5` UTC (after the US close).
+- One row per ticker per New York trading day (`snapshot_date`), for distinct tickers from lots and favorites. Re-runs the same day do not create duplicates.
+- The job loads `JobSettings` (`DATABASE_URL` + `FINNHUB_API_KEY` only). It does not need WorkOS variables.
 
 ## WorkOS checklist (short)
 

@@ -237,6 +237,45 @@ def test_idempotency_same_user_and_cross_user(users_and_lot: dict) -> None:
     assert other.lot.user_id == user_b.id
 
 
+def test_route_b_cannot_delete_a_account(users_and_lot: dict) -> None:
+    db = users_and_lot["db"]
+    user_a = users_and_lot["user_a"]
+    user_b = users_and_lot["user_b"]
+    account_a = users_and_lot["account_a"]
+    lot_a = users_and_lot["lot_a"]
+
+    app = create_app()
+
+    def override_user() -> User:
+        return user_b
+
+    def override_db():
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_current_web_user] = override_user
+    app.dependency_overrides[get_db] = override_db
+
+    csrf = "test-csrf-token"
+    with TestClient(app) as client:
+        client.cookies.set("csrf_token", csrf)
+        confirm = client.get(f"/accounts/{account_a.id}/delete")
+        assert confirm.status_code == 404
+
+        deleted = client.post(
+            f"/accounts/{account_a.id}/delete",
+            data={"csrf_token": csrf},
+            follow_redirects=False,
+        )
+        assert deleted.status_code == 404
+
+    assert accounts_service.get_account(db, user_a.id, account_a.id) is not None
+    assert holdings_service.get_lot(db, user_a.id, lot_a.id) is not None
+    app.dependency_overrides.clear()
+
+
 def test_post_holdings_rejects_bad_csrf(users_and_lot: dict) -> None:
     db = users_and_lot["db"]
     user_a = users_and_lot["user_a"]

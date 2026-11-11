@@ -50,10 +50,12 @@ class Settings(BaseSettings):
     workos_client_id: str = Field(alias="WORKOS_CLIENT_ID")
     workos_cookie_password: str = Field(alias="WORKOS_COOKIE_PASSWORD")
     authkit_domain: str = Field(alias="AUTHKIT_DOMAIN")
+    finnhub_api_key: str = Field(alias="FINNHUB_API_KEY")
 
     session_cookie_name: str = "wos_session"
     oauth_state_cookie_name: str = "oauth_state"
     csrf_cookie_name: str = "csrf_token"
+    price_refresh_cookie_name: str = "price_refresh_at"
 
     @field_validator(
         "base_url",
@@ -64,6 +66,7 @@ class Settings(BaseSettings):
         "workos_client_id",
         "workos_cookie_password",
         "authkit_domain",
+        "finnhub_api_key",
         mode="before",
     )
     @classmethod
@@ -147,6 +150,39 @@ class Settings(BaseSettings):
     def allowed_hosts(self) -> list[str]:
         host = urlparse(self.base_url).hostname
         return [host] if host else []
+
+
+class JobSettings(BaseSettings):
+    """Minimal settings for the daily price snapshot cron job.
+
+    The job only reads and writes the quotes table, so it needs DATABASE_URL
+    and FINNHUB_API_KEY. It does not load WorkOS or web-origin settings.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    database_url: str = Field(alias="DATABASE_URL")
+    finnhub_api_key: str = Field(alias="FINNHUB_API_KEY")
+
+    @field_validator("database_url", "finnhub_api_key", mode="before")
+    @classmethod
+    def strip_env_strings(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @model_validator(mode="after")
+    def validate_urls(self) -> JobSettings:
+        to_sqlalchemy_url(self.database_url)
+        return self
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        return to_sqlalchemy_url(self.database_url)
 
 
 @lru_cache

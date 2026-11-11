@@ -44,3 +44,13 @@
 **Decision:** All money and quantity math uses Decimal at full precision. Rounding happens only for display: currency to cents with round-half-up, percentages to two places.
 **Why:** Rounding intermediate values causes totals that do not add up. Keeping display rounding separate means calculations can be checked exactly against a hand calculation.
 
+## 2026-11-11: Finnhub for live quotes
+**Decision:** Use Finnhub's free-plan `/quote` endpoint for US equity prices, with the API key sent only in the `X-Finnhub-Token` header.
+**Alternatives considered:** yfinance (unofficial scraper, brittle for a client handoff); paid Finnhub historical candle endpoints (not on the free plan).
+**Why:** Documented HTTP API, free tier at 60 calls per minute, and a clear all-zero response for unknown symbols so the app can show "unavailable" instead of a fake zero.
+
+## 2026-11-11: Price history from daily snapshots
+**Decision:** Build price history by storing one quote row per ticker per New York trading day (`snapshot_date`), filled by a weekday Render cron after the US close. Live dashboard fetches write separate cache rows with `snapshot_date` null.
+**Alternatives considered:** Finnhub `/stock/candle` (paid on current free plans); pulling history only when a user opens the research page (would leave gaps on days nobody visits).
+**Why:** The free plan does not include candles, and a scheduled snapshot keeps history for held and favorited tickers even when no one opens the app.
+

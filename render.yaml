@@ -25,3 +25,21 @@ services:
         sync: false
       - key: AUTHKIT_DOMAIN
         sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+
+  - type: cron
+    name: portfolio-price-snapshot
+    runtime: python
+    region: ohio
+    plan: starter
+    schedule: "30 22 * * 1-5"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.jobs.snapshot_prices
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: DATABASE_URL
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false

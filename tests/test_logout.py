@@ -21,6 +21,7 @@ def _settings() -> Settings:
         WORKOS_CLIENT_ID="client_test",
         WORKOS_COOKIE_PASSWORD=Fernet.generate_key().decode(),
         AUTHKIT_DOMAIN="https://example.authkit.app",
+        FINNHUB_API_KEY="finnhub_test_key",
     )
 
 
