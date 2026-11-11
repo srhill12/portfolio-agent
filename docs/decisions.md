@@ -35,3 +35,12 @@
 ## 2026-10-18: Render Starter plan in Ohio region
 
 **Decision:** Render Starter plan in Ohio region. Free tier sleeps after 15 minutes idle, which adds cold-start delays that can break OAuth sign-in and MCP connections for a reviewer. Ohio co-locates the app with the Neon database. Scheduled jobs will run as a separate Render cron service.
+
+## 2026-11-11: Separate test database branch
+**Decision:** Isolation and database tests run against a dedicated Neon branch named test, set in TEST_DATABASE_URL. Each test runs inside a transaction that is rolled back.
+**Why:** The schema uses Postgres-only features (partial unique indexes, enums, JSONB), so an in-memory SQLite substitute would not test the real constraints. A guard refuses to run if the test host matches production.
+
+## 2026-11-11: Money and rounding
+**Decision:** All money and quantity math uses Decimal at full precision. Rounding happens only for display: currency to cents with round-half-up, percentages to two places.
+**Why:** Rounding intermediate values causes totals that do not add up. Keeping display rounding separate means calculations can be checked exactly against a hand calculation.
+
