@@ -19,7 +19,7 @@ Rows marked (beyond rubric) are self-imposed quality bars, not assessment requir
 | A4 | Same isolation: agent | User ID injected server-side into agent tools | Code review and test that tools ignore model-supplied IDs | 3 | Not started |
 | A5 | Same isolation: MCP | Token resolves to user ID; shared service layer | MCP session as second user cannot read or edit first user's data | 3 | Not started |
 | A6 | MCP authorization via OAuth; fallback documented if not feasible | Authorization layer | Claude Code connected to the production /mcp endpoint via AuthKit OAuth; whoami returned the signed-in user (2026-11-10). Verified at Gate 3 with portfolio tools. | 1, 3 | In progress |
-| H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | User rows persist across redeploys. Verified at Gate 2 when lots survive a redeploy. | 1, 2 | In progress |
+| H1 | Persist investment and retirement accounts, tickers, quantities, purchase prices | Accounts and lots tables (Postgres) | Brokerage account and AAPL lot created on production persisted across a manual redeploy (2026-11-11). | 1, 2 | Verified |
 | H2 | Add and update holdings | Holdings forms and API | Manual walkthrough; test_idempotency_same_user_and_cross_user | 2 | In progress |
 | M1 | Quotes from an external market-data API | Quote service | Live quote displayed with source | 2 | Not started |
 | M2 | Store price history | Quotes table with daily snapshot job | Rows accumulate daily; chart on research page | 2 | Not started |

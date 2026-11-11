@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from dataclasses import dataclass
 from typing import Any
@@ -9,6 +10,8 @@ from workos.session import seal_session_from_auth_response
 
 from app.auth.workos_client import get_workos_client
 from app.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -202,15 +205,39 @@ def get_logout_url(
     sealed = request.cookies.get(settings.session_cookie_name)
     if not sealed:
         return None
+
     client = get_workos_client()
+    return_url = return_to or settings.base_url
     session = client.user_management.load_sealed_session(
         session_data=sealed,
         cookie_password=settings.workos_cookie_password,
     )
     try:
-        return session.get_logout_url(return_to=return_to or settings.base_url)
+        return session.get_logout_url(return_to=return_url)
     except Exception:
-        return None
+        pass
+
+    try:
+        refreshed = session.refresh()
+    except Exception:
+        refreshed = None
+
+    new_sealed = getattr(refreshed, "sealed_session", None) if refreshed else None
+    if refreshed is not None and getattr(refreshed, "authenticated", False) and new_sealed:
+        try:
+            refreshed_session = client.user_management.load_sealed_session(
+                session_data=new_sealed,
+                cookie_password=settings.workos_cookie_password,
+            )
+            return refreshed_session.get_logout_url(return_to=return_url)
+        except Exception:
+            pass
+
+    logger.warning(
+        "Could not build WorkOS logout URL after authenticate and refresh failed; "
+        "clearing local session cookie only"
+    )
+    return None
 
 
 def _user_id(user: Any) -> str | None:
